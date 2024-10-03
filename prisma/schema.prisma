@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  username       String           @unique
+  email          String           @unique
+  password       String
+  mobile         String           @unique
+  referralCode   String           @unique
+  referredBy     String?
+  tournaments    UserTournament[]  // Relation to the tournaments the user participates in
+  teams          UserTeam[]       // Relation to the teams the user is a part of
+  createdTournaments Tournament[]  // Add this line for created tournaments
+  depositWallet  Float            @default(0.0)
+  bonusWallet    Float            @default(0.0)
+  winningsWallet Float            @default(0.0)
+  matchesPlayed  Int              @default(0)
+  matchesWon     Int              @default(0)
+  referrals      Referral[]
+  transactions   Transaction[]
+}
+
+model Tournament {
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  entryFee      Float
+  prize         Float
+  teams         Team[]           // If you need to reference Team later
+  createdBy     User             @relation(fields: [createdById], references: [id])
+  createdById   String           @db.ObjectId
+  status        String           @default("upcoming")
+  startDate     DateTime
+  endDate       DateTime
+  bannerImage   String
+  map           String
+  mode          String
+  perKill       Float
+  maxTeamJoin   Int
+  hostName      String
+  hostLink      String
+  participants  UserTournament[]  // Relation to participants
+}
+
+model Team {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  teamName     String
+  logo         String
+  teamCode     String     @unique
+  kills        Int        @default(0)
+  placePoints  Int        @default(0)
+  totalPoints  Int        @default(0)
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+  tournamentId String?     @db.ObjectId
+  members      UserTeam[] // Assuming this is for users in the team
+
+  // Add the opposite relation field
+  userTournaments UserTournament[] // Relation to UserTournament
+}
+
+model Referral {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  referrer   User   @relation(fields: [referrerId], references: [id])
+  referrerId String @db.ObjectId
+  bonus      Float
+}
+
+model Transaction {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @db.ObjectId
+  matchId String
+  amount      Float
+  type        String   
+  walletType  String   // 'deposit', 'bonus', or 'winnings'
+  walletTypeUsed WalletTypeUsed[] // Assuming this is a relation to a separate model for wallet types
+  description String?
+  date        DateTime @default(now())
+}
+
+
+model WalletTypeUsed {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  transactionId String
+  walletType String
+  amount     Float
+}
+
+model UserTournament {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId // Correctly map the ID to MongoDB's ObjectId
+  userId         String
+  tournamentId   String
+  teamId         String  // This is the field to connect to the Team model
+
+  user           User    @relation(fields: [userId], references: [id])
+  tournament     Tournament @relation(fields: [tournamentId], references: [id])
+  team           Team    @relation(fields: [teamId], references: [id]) // Relation to Team
+
+  createdAt      DateTime @default(now())
+}
+
+model UserTeam {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @db.ObjectId
+  team   Team   @relation(fields: [teamId], references: [id])
+  teamId String @db.ObjectId
+  inGameName  String   // The in-game name of the user
+  inGamePlayerId  String
+  role        String   // The role of the user in the team
+}
+
+enum MapType {
+  ERANGEL
+  LIVIK
+  MIRAMAR
+}
+
+enum GameMode {
+  SQUAD
+  DUO
+  SOLO
+}
+
