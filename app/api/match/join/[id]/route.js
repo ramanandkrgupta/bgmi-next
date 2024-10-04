@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma'; // Ensure the import path is correct
 
 export async function POST(req, { params }) {
   const { id } = params; // Match ID from the URL
-  const { teamCode, userId } = await req.json(); // Expecting teamCode and userId from the request body
+  const { teamId, userId } = await req.json(); // Expecting teamId and userId from the request body
   console.log(id);
 
   try {
@@ -22,7 +22,7 @@ export async function POST(req, { params }) {
 
     // Find the team based on the provided team code
     const team = await prisma.team.findUnique({
-      where: { teamCode },
+      where: { id: teamId },
       include: {
         members: true, // Include members if necessary
       },

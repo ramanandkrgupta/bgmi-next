@@ -1,106 +1,78 @@
-import formidable from 'formidable';
-import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { verifyToken } from '@/lib/auth';
+// app/api/team/create/route.js
 
-export const config = {
-  api: {
-    bodyParser: false, // Disable the default body parser
-  },
-};
+import { PrismaClient } from '@prisma/client'; // Import Prisma Client
+import { nanoid } from 'nanoid'; // Import nanoid for generating unique team codes
+
+import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers';
+
+const prisma = new PrismaClient(); // Initialize Prisma Client
+
+
+// prisma.$use(async (params, next) => {
+//     // Check if this is a 'create' operation for the 'User' model
+//     if (params.action === 'create') {
+//       // Generate a random referral code (you can customize the length)
+//       const teamCode = Math.random().toString(36).substring(2, 10).toUpperCase(); 
+//       params.args.data.teamCode = teamCode;
+//     }
+  
+//     return next(params);
+//   });
 
 export async function POST(req) {
-  const cookies = req.cookies;
-  const token = cookies.get('token');
-
-  if (!token) {
-    console.error('No token provided');
-    return NextResponse.json({ error: 'Unauthorized, no token provided' }, { status: 401 });
-  }
-
-  let decoded;
   try {
-    decoded = verifyToken(token.value); // Verify the token and decode it
-  } catch (err) {
-    console.error('Error verifying token:', err);
-    return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
-  }
+    const { teamName, logoUrl} = await req.json();
+    const cookieStore = cookies();
+    const token = cookieStore.get('token')?.value;
 
-  const userId = decoded.id;
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  if (!userId) {
-    console.error('No userId found in token');
-    return NextResponse.json({ error: 'Invalid token, no userId' }, { status: 403 });
-  }
+    // Decode the token to get the user ID
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decodedToken.id;
+    const teamCreatedById = userId;
+    console.log(userId)
 
-  // Create a new instance of Formidable
-  const form = new formidable.IncomingForm();
+    // Default logo path
+    const defaultLogoUrl = '/logo/bgmi-logo.jpeg'; // Ensure the logo path is correct
 
-  // Parse the incoming request with formidable
-  return new Promise((resolve, reject) => {
-    form.parse(req, async (err, fields, files) => {
-      if (err) {
-        console.error('Error parsing the files:', err);
-        reject(NextResponse.json({ error: 'Error parsing the files' }, { status: 500 }));
-        return;
-      }
+    // Use the provided logo URL or fall back to the default logo
+    const teamLogo = logoUrl ? logoUrl : defaultLogoUrl;
 
-      console.log('Parsed fields:', fields); // Log parsed fields
-      console.log('Parsed files:', files);   // Log parsed files
+    // Generate a unique team code
+     const teamCode = nanoid(8); // Generates a unique 8-character string
 
-      const { teamName } = fields;
-
-      if (!teamName) {
-        console.error('Team name is missing');
-        reject(NextResponse.json({ error: 'Team name is required' }, { status: 400 }));
-        return;
-      }
-
-      const file = files.teamLogo;
-
-      if (!file || file.length === 0) {
-        console.error('Team logo file is missing');
-        reject(NextResponse.json({ error: 'Team logo is required' }, { status: 400 }));
-        return;
-      }
-
-      // Define the upload directory
-      const uploadDir = path.join(process.cwd(), 'public');
-
-      // Move the file to the public folder
-      const newFileName = `${Date.now()}-${file[0].originalFilename}`;
-      const filePath = path.join(uploadDir, newFileName);
-
-      // Use fs to rename the file
-      fs.rename(file[0].filepath, filePath, (error) => {
-        if (error) {
-          console.error('Error saving the file:', error);
-          reject(NextResponse.json({ error: 'Error saving the file' }, { status: 500 }));
-          return;
-        }
-
-        // Construct the image URL
-        const imageUrl = `/${newFileName}`;
-
-        const team = {
-          teamName,
-          logo: imageUrl,
-          teamCode: Math.random().toString(36).substring(2, 8).toUpperCase(), // Example team code
-          teamCreatedById: userId,
-          members: [
-            {
-              userId,
-              inGameName: 'AcePlayer', // Replace with actual in-game name
-              inGamePlayerId: 'player123', // Replace with actual in-game player ID
-              role: 'Leader', // Replace with actual role
-            },
-          ],
-        };
-
-        console.log('Team created successfully:', team); // Log the created team details
-        resolve(NextResponse.json(team, { status: 200 })); // Send team details in response
-      });
+    // Create the team in the database
+    const newTeam = await prisma.team.create({
+      data: {
+        teamName,
+        logo: teamLogo,
+        teamCode,
+        // teamCreatedById: userId,
+        teamCreatedBy: {
+          connect: { id: teamCreatedById }, // Associate with the user who created the team
+        },
+      },
     });
-  });
+
+    return new Response(JSON.stringify(newTeam), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (error) {
+    console.error('Error creating team:', error);
+    return new Response(JSON.stringify({ error: 'Error creating team', errorindetail: error}), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } finally {
+    await prisma.$disconnect(); // Ensure Prisma Client is disconnected after the operation
+  }
 }

@@ -8,8 +8,9 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Home, Trophy, Users, Settings, Menu } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
+import { useRouter } from "next/navigation";
+import { useMatch } from "./context/MatchContext" // Import the custom hook
 import Link from "next/link";
-import MatchDetails from "./match/[id]/page";
 
 export default function TournamentApp() {
   const [activeTab, setActiveTab] = useState("upcoming");
@@ -18,6 +19,9 @@ export default function TournamentApp() {
     ongoing: [],
     completed: [],
   });
+
+  const router = useRouter();
+  const { setSelectedMatchId } = useMatch(); // Destructure setSelectedMatchId from the context
 
   useEffect(() => {
     const fetchTournaments = async () => {
@@ -34,6 +38,14 @@ export default function TournamentApp() {
 
     fetchTournaments();
   }, []);
+
+  const handleJoinClick = (matchId) => {
+    // Set match ID in context instead of URL
+    setSelectedMatchId(matchId);
+
+    // Navigate to team selection without passing matchId in the URL
+    router.push("/team-selection");
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-200">
@@ -78,9 +90,14 @@ export default function TournamentApp() {
                     className="rounded-t-lg"
                   />
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60"></div>
-                  <h2 className="absolute bottom-2 left-4 text-xl font-bold text-white">{tournament.name}</h2>
+                  <h2 className="absolute bottom-2 left-4 text-xl font-bold text-white">
+                    {tournament.name}
+                  </h2>
                 </div>
                 <CardContent className="p-4">
+                <p className="text-blue-500 text-sm font-bold">
+          <span className="font-semibold text-red-400">Start Date:</span> {new Date(tournament.startDate).toLocaleDateString()} {new Date(tournament.startDate).toLocaleTimeString()}
+        </p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>Entry Fee: {tournament.entryFee}</div>
                     <div>Prize Pool: {tournament.prize}</div>
@@ -93,14 +110,14 @@ export default function TournamentApp() {
                   </div>
                 </CardContent>
                 <CardFooter className="bg-gray-50 p-2 flex justify-between">
-                  <Button variant="outline" size="sm" >
                   <Link href={`/match/${tournament.id}`} passHref>
-            <Button as="a" variant="outline" size="sm">
-              Details
-            </Button>
-          </Link>
+                    <Button as="a" variant="outline" size="sm">
+                      Details
+                    </Button>
+                  </Link>
+                  <Button size="sm" onClick={() => handleJoinClick(tournament.id)}>
+                    Join
                   </Button>
-                  <Button size="sm">Join</Button>
                 </CardFooter>
               </Card>
             ))

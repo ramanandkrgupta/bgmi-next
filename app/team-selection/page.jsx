@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useMatch } from "../context/MatchContext";
+import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,14 +18,22 @@ import {
 } from "@/components/ui/dialog";
 
 export default function TeamSelection() {
-  const [team, setTeam] = useState(null); // Initialize as null
+    const { selectedMatchId } = useMatch();
+
+  const [team, setTeam] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch team from API
+  // Fetch team from the API
   useEffect(() => {
+    if (!selectedMatchId) {
+      setError("Select one match first . go back and join again ");
+      setLoading(false);
+      return;
+    }
+
     const fetchTeam = async () => {
       try {
         const response = await fetch("/api/team/myTeam");
@@ -31,9 +41,7 @@ export default function TeamSelection() {
           throw new Error("Failed to fetch team");
         }
         const data = await response.json();
-
-        // Set the team data directly
-        setTeam(data.team); // Assuming the API returns a team object
+        setTeam(data.team);
       } catch (error) {
         console.error("Error fetching team:", error);
         setError(error.message);
@@ -43,7 +51,7 @@ export default function TeamSelection() {
     };
 
     fetchTeam();
-  }, []);
+  }, [selectedMatchId]);
 
   const handleTeamSelect = () => {
     if (team) {
@@ -51,8 +59,33 @@ export default function TeamSelection() {
     }
   };
 
-  const handleJoinTournament = () => {
-    setShowSuccessDialog(true);
+  const handleJoinTournament = async () => {
+    if (!selectedTeam || !selectedMatchId) {
+      console.error("Missing required data: teamId or matchId");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/match/join/${selectedMatchId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          teamId: selectedTeam,
+        userId: "66fe96eaeb09cebabc289ee0"
+        }),
+      });
+
+      if (response.ok) {
+        setShowSuccessDialog(true);
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to join match:", errorData);
+      }
+    } catch (error) {
+      console.error("Error joining match:", error);
+    }
   };
 
   // Loading state
@@ -71,9 +104,11 @@ export default function TeamSelection() {
       <nav className="sticky top-0 z-10 bg-white shadow-md p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
+          <Link href="/">
             <Button variant="ghost" size="icon" className="mr-2">
               <ArrowLeft className="h-6 w-6" />
             </Button>
+            </Link>L
             <h1 className="text-xl font-bold">Select Team</h1>
           </div>
           <Link href="/create-team">
@@ -87,7 +122,7 @@ export default function TeamSelection() {
       {/* Main Content */}
       <main className="flex-grow p-4 pb-20">
         <div className="space-y-4">
-          {team && ( // Check if team is available
+          {team && (
             <Card
               key={team.id}
               className={`overflow-hidden ${
@@ -115,7 +150,9 @@ export default function TeamSelection() {
                   {team.members.map((member) => (
                     <div key={member.id} className="text-sm">
                       <p className="font-semibold">{member.inGameName}</p>
-                      <p className="text-muted-foreground">{member.inGamePlayerId}</p>
+                      <p className="text-muted-foreground">
+                        {member.inGamePlayerId}
+                      </p>
                     </div>
                   ))}
                 </div>

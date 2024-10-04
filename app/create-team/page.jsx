@@ -5,61 +5,36 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Home,
-  Trophy,
-  Users,
-  Settings,
-  ArrowLeft,
-  Copy,
-  Share2,
-} from "lucide-react";
+import { Home, Trophy, Users, Settings, ArrowLeft, Copy, Share2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function CreateTeam() {
   const [teamName, setTeamName] = useState("");
-  const [teamLogo, setTeamLogo] = useState(null);
+  const [teamLogoUrl, setTeamLogoUrl] = useState(""); // Using URL for team logo
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [teamCode, setTeamCode] = useState("");
-  const [teamImageUrl, setTeamImageUrl] = useState(""); // New state for image URL
-
-  const handleLogoChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setTeamLogo(e.target.files[0]);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setTeamImageUrl(event.target.result); // Set image URL for preview
-      };
-      reader.readAsDataURL(e.target.files[0]);
-    }
-  };
 
   const handleCreateTeam = async (e) => {
     e.preventDefault();
 
-    const formData = new FormData();
-    formData.append("teamName", teamName);
-    formData.append("teamLogo", teamLogo);
-    // formData.append("userId", "yourUserIdHere") // Replace with actual user ID
-
     try {
       const response = await fetch("/api/team/create", {
         method: "POST",
-        body: formData,
+        body: JSON.stringify({
+          teamName,
+          teamLogoUrl, // Send the logo URL directly
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.ok) {
         const data = await response.json();
         setTeamCode(data.teamCode);
-        setTeamImageUrl(data.logo); // Use the logo URL returned from the API
+        setTeamLogoUrl(data.logo); // Use the logo URL returned from the API if needed
         setShowSuccessDialog(true);
       } else {
         const errorData = await response.json();
@@ -113,12 +88,12 @@ export default function CreateTeam() {
             />
           </div>
           <div>
-            <Label htmlFor="teamLogo">Team Logo</Label>
+            <Label htmlFor="teamLogoUrl">Team Logo URL</Label>
             <Input
-              id="teamLogo"
-              type="file"
-              accept="image/*"
-              onChange={handleLogoChange}
+              id="teamLogoUrl"
+              value={teamLogoUrl}
+              onChange={(e) => setTeamLogoUrl(e.target.value)}
+              placeholder="Enter image URL"
               required
             />
           </div>
@@ -166,9 +141,9 @@ export default function CreateTeam() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center space-x-4 mb-4">
-            {teamImageUrl && (
+            {teamLogoUrl && (
               <Image
-                src={teamImageUrl}
+                src={teamLogoUrl}
                 alt="Team Logo Preview"
                 width={100}
                 height={100}
