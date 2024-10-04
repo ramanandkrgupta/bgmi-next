@@ -194,7 +194,7 @@ export default function MatchDetails() {
               </TableHeader>
               <TableBody>
                 {matchDetails.teams.map((team) => (
-                  <TableRow key={team.id} onClick={() => setSelectedTeam(team.id)} className="cursor-pointer">
+                  <TableRow key={team.id} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
                     <TableCell>
                       <Image
                         src={team.logo}
