@@ -1,218 +1,288 @@
-"use client";
+"use client"
 
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Home, Trophy, Users, Settings, ArrowLeft, Copy, Check } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-const MatchDetails = () => {
+export default function MatchDetails() {
   const { id } = useParams();
-  const [match, setMatch] = useState(null);
-  const [activeTab, setActiveTab] = useState("team"); // State to control active tab
+  const [matchDetails, setMatchDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // State for error handling
+  const [copiedRoomId, setCopiedRoomId] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState(null);
 
   useEffect(() => {
+    if (!id) {
+      setError("No match id found in the url");
+      setLoading(false)
+      return
+    }
     const fetchMatchDetails = async () => {
       try {
-        const response = await axios.get(`/api/match/?id=${id}`);
-        setMatch(response.data);
+        const response = await fetch(`/api/match/?id=${id}`);
+        const data = await response.json();
+
+        // Log response for debugging
+        console.log("Match Details Response:", data);
+
+        if (!data || data.error) {
+          throw new Error(data.error || "Failed to load match details");
+        }
+
+        setMatchDetails(data);
       } catch (error) {
         console.error("Error fetching match details:", error);
+        setError("Failed to load match details. Please try again.");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchMatchDetails();
   }, [id]);
 
-  if (!match) return <div>Loading...</div>;
+  // Loading state
+  if (loading) {
+    return <div className="p-4">Loading match details...</div>;
+  }
 
-  const renderMatchCard = () => {
-    const totalSpots = match.maxTeamJoin;
-    const joinedSpots = match._count.teams || 0; // Assuming joined teams count comes from the match data
-    const spotsLeft = totalSpots - joinedSpots;
-    const progressPercentage = (joinedSpots / totalSpots) * 100;
+  // Error state
+  if (error) {
+    return <div className="p-4 text-red-500">{error}</div>;
+  }
 
-    // Format the start date
-    const startDate = new Date(match.startDate);
-    const formattedDate = startDate.toLocaleDateString("en-US", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      weekday: "short",
-    });
-    const formattedTime = startDate.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+  // If no match details are found after loading
+  if (!matchDetails) {
+    return <div className="p-4 text-gray-500">No match details found</div>;
+  }
 
-    return (
-      <div className="bg-[#181818] rounded-lg p-4 mb-4 shadow-md relative">
-        <img
-          src={match.bannerImage}
-          alt={`${match.name} Banner`}
-          className="h-48 w-full object-cover rounded-t-lg"
-        />
-        <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-50 rounded-t-lg p-2 flex justify-between items-center">
-          <span className="text-white text-sm font-bold">PRIZEPOOL</span>
-          <span className="text-yellow-400 text-2xl font-bold">{match.prize} INR</span>
-        </div>
-        <div className="mt-2">
-          <h2 className="text-white text-xl font-bold">{match.name}</h2>
-          <p className="text-blue-500 text-lg font-bold">
-            <span className="font-semibold text-red-400">Start Date:</span>{" "}
-            {formattedDate} {formattedTime}
-          </p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
-            <div>
-              <span className="text-gray-400 font-semibold">Entry Fee:</span>
-              <span className="text-white ml-2">{match.entryFee} INR</span>
-            </div>
-            <div>
-              <span className="text-gray-400 font-semibold">Map:</span>
-              <span className="text-white ml-2">{match.map}</span>
-            </div>
-            <div>
-              <span className="text-gray-400 font-semibold">Per Kill:</span>
-              <span className="text-white ml-2">{match.perKill} INR</span>
-            </div>
-            <div>
-              <span className="text-gray-400 font-semibold">Mode:</span>
-              <span className="text-white ml-2">{match.mode}</span>
-            </div>
-            <div>
-              <span className="text-gray-400 font-semibold">Joined:</span>
-              <span className="text-white ml-2">
-                {joinedSpots}/{totalSpots}
-              </span>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-500"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
-            </div>
-            <p className="text-gray-400 text-sm mt-1">{spotsLeft} spots left</p>
-          </div>
-        </div>
-        {match.status === "upcoming" && (
-          <div>
-            <button className="bg-green-500 hover:bg-green-600 text-white font-bold btn px-16 text-lg rounded-2xl mt-4">
-              Join
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderTabs = () => (
-    <div className="flex space-x-4 mb-6">
-      <button
-        className={`flex-grow px-4 py-2 rounded ${
-          activeTab === "team" ? "bg-yellow-500 text-white" : "bg-gray-200 text-black"
-        }`}
-        onClick={() => setActiveTab("team")}
-      >
-        Team
-      </button>
-      <button
-        className={`flex-grow px-4 py-2 rounded ${
-          activeTab === "prizepool" ? "bg-green-500 text-white" : "bg-gray-200 text-black"
-        }`}
-        onClick={() => setActiveTab("prizepool")}
-      >
-        Prizepool
-      </button>
-      <button
-        className={`flex-grow px-4 py-2 rounded ${
-          activeTab === "rule" ? "bg-red-500 text-white" : "bg-gray-200 text-black"
-        }`}
-        onClick={() => setActiveTab("rule")}
-      >
-        Rule
-      </button>
-    </div>
-  );
-
-  const renderTeamList = (teams) => (
-    <div>
-      <h3 className="text-xl font-bold text-white mb-4">Joined Teams</h3>
-      <table className="min-w-full bg-gray-800 text-white">
-        <thead>
-          <tr>
-            <th className="py-2">S.No</th>
-            <th className="py-2">Name</th>
-            <th className="py-2">Kill</th>
-            <th className="py-2">Place Point</th>
-            <th className="py-2">Total Point</th>
-          </tr>
-        </thead>
-        <tbody>
-          {teams.map((team, index) => (
-            <tr key={team._id} className="bg-gray-700 border-b border-gray-600">
-              <td className="py-2 text-center">{index + 1}</td>
-              <td className="py-2 text-center">{team.teamName}</td>
-              <td className="py-2 text-center">{team.kills}</td>
-              <td className="py-2 text-center">{team.placePoints}</td>
-              <td className="py-2 text-center">{team.totalPoints}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case "team":
-        return renderTeamList(match.teams);
-      case "prizepool":
-        return (
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-4">Prizepool</h2>
-            <ul className="space-y-2">
-              <li className="flex items-center bg-gray-800 p-4 rounded-lg shadow-md">
-                <span className="text-yellow-400 font-bold mr-2">Rank 1:</span>
-                <span className="text-white">1000 INR</span>
-              </li>
-              <li className="flex items-center bg-gray-800 p-4 rounded-lg shadow-md">
-                <span className="text-yellow-400 font-bold mr-2">Rank 2:</span>
-                <span className="text-white">500 INR</span>
-              </li>
-              <li className="flex items-center bg-gray-800 p-4 rounded-lg shadow-md">
-                <span className="text-yellow-400 font-bold mr-2">Rank 3:</span>
-                <span className="text-white">200 INR</span>
-              </li>
-            </ul>
-          </div>
-        );
-      case "rule":
-        return (
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-4">Game Rules</h2>
-            <div className="text-white space-y-2">
-              <p>1. Solo and duos players will be disqualified from that match.</p>
-              <p>
-                2. No kick requests will be taken after 7 minutes of announcing the
-                room ID and password.
-              </p>
-              {/* Add the remaining rules */}
-            </div>
-          </div>
-        );
-      default:
-        return null;
+  const handleCopy = (text, type) => {
+    navigator.clipboard.writeText(text);
+    if (type === 'roomId') {
+      setCopiedRoomId(true);
+      setTimeout(() => setCopiedRoomId(false), 2000);
+    } else {
+      setCopiedPassword(true);
+      setTimeout(() => setCopiedPassword(false), 2000);
     }
   };
 
-  return (
-    <div className="container mx-auto p-4">
-      {renderMatchCard()}
-      {renderTabs()}
-      <section>{renderContent()}</section>
-    </div>
-  );
-};
 
-export default MatchDetails;
+  const spotsLeft = matchDetails.maxTeamJoin - matchDetails._count.teams;
+  const progressPercentage = (matchDetails._count.teams / matchDetails.maxTeamJoin) * 100;
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      {/* Navbar */}
+      <nav className="sticky top-0 z-10 bg-white shadow-md p-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <Link href="/">
+              <Button variant="ghost" size="icon" className="mr-2">
+                <ArrowLeft className="h-6 w-6" />
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold">Match Details</h1>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="flex-grow p-4 pb-20">
+        <Card className="mb-4">
+          <CardContent className="p-0">
+            <Image
+              src={matchDetails.bannerImage}
+              alt={matchDetails.title}
+              width={600}
+              height={200}
+              className="w-full h-40 object-cover"
+            />
+            <div className="p-4">
+              <h2 className="text-2xl font-bold mb-2">{matchDetails.title}</h2>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>Entry Fee: {matchDetails.entryFee}</div>
+                <div>Prize Pool: {matchDetails.prizePool}</div>
+                <div>Per Kill: {matchDetails.perKill}</div>
+                <div>Map: {matchDetails.map}</div>
+                <div>Mode: {matchDetails.mode}</div>
+                <div>Joined: {matchDetails._count.teams}/{matchDetails.maxTeamJoin}</div>
+              </div>
+              <div className="mt-4">
+                <p className="text-sm mb-1">Spots left: {spotsLeft}</p>
+                <Progress value={progressPercentage} className="w-full" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <h3 className="text-lg font-semibold mb-2">Room Details</h3>
+            <div className="flex justify-between items-center mb-2">
+              <span>Room ID: 
+                {/* {matchDetails.roomId} */}
+                321432
+                </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopy(
+                  // matchDetails.roomId,
+                  321432,
+                   'roomId')}
+              >
+                {copiedRoomId ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Password:
+                 {/* {matchDetails.roomPassword} */}
+                 1234
+                 </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopy(
+                  // matchDetails.roomPassword,
+                  1234,
+                   'password')}
+              >
+                {copiedPassword ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Tabs defaultValue="teams" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="teams">Teams</TabsTrigger>
+            <TabsTrigger value="prizepool">Prize Pool</TabsTrigger>
+            <TabsTrigger value="rules">Rules</TabsTrigger>
+            <TabsTrigger value="standings">Standings</TabsTrigger>
+          </TabsList>
+          <TabsContent value="teams">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Logo</TableHead>
+                  <TableHead>Team Name</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {matchDetails.teams.map((team) => (
+                  <TableRow key={team.id} onClick={() => setSelectedTeam(team.id)} className="cursor-pointer">
+                    <TableCell>
+                      <Image
+                        src={team.logo}
+                        alt={`${team.teamName} logo`}
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                      />
+                    </TableCell>
+                    <TableCell>{team.teamName}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TabsContent>
+          <TabsContent value="prizepool">
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Prize Pool Distribution</h3>
+                <p>Total Prize Pool: {matchDetails.prizePool}</p>
+                <p>Per Kill: {matchDetails.perKill}</p>
+                {/* Add more prize pool details here */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="rules">
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Tournament Rules</h3>
+                <ul className="list-disc pl-5">
+                  {/* {matchDetails.rules.map((rule, index) => (
+                    <li key={index}>{rule}</li>
+                  ))} */}
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="standings">
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Match Standings</h3>
+                <p>Standings will be updated after the match.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* Sticky Bottom Navigation */}
+      <motion.nav
+        className="sticky bottom-0 bg-white shadow-lg"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
+        <div className="flex justify-around p-2">
+          {[ 
+            { icon: Home, label: "Home" },
+            { icon: Trophy, label: "Tournaments" },
+            { icon: Users, label: "Teams" },
+            { icon: Settings, label: "Settings" },
+          ].map((item, index) => (
+            <Button key={index} variant="ghost" size="icon" className="flex flex-col items-center">
+              <item.icon className="h-6 w-6 mb-1" />
+              <span className="text-xs">{item.label}</span>
+            </Button>
+          ))}
+        </div>
+      </motion.nav>
+
+      {/* Team Details Dialog */}
+      <Dialog open={selectedTeam !== null} onOpenChange={() => setSelectedTeam(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Team Details</DialogTitle>
+          </DialogHeader>
+          {selectedTeam && (
+            <div>
+              <p><strong>Team Name:</strong> {selectedTeam.teamName}</p>
+              <p><strong>In-Game Name:</strong> {selectedTeam.inGameName}</p>
+              <p><strong>Role:</strong> {selectedTeam.role}</p>
+              <p><strong>Team Code:</strong> {selectedTeam.teamCode}</p>
+              <p><strong>Creator:</strong> {selectedTeam.creator}</p>
+              {/* Add more team details as needed */}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

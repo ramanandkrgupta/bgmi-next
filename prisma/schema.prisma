@@ -64,8 +64,8 @@ model Team {
   userTournaments UserTournament[] // Relation to UserTournament
 
   // New field: Track the user who created the team
-  teamCreatedBy   User   @relation(fields: [teamCreatedById], references: [id])
-  teamCreatedById String @db.ObjectId
+  teamCreatedBy   User?   @relation(fields: [teamCreatedById], references: [id])
+  teamCreatedById String? @db.ObjectId
 }
 
 model Referral {
