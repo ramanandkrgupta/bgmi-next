@@ -18,45 +18,43 @@ import {
 } from "@/components/ui/dialog";
 
 export default function TeamSelection() {
-    const { selectedMatchId } = useMatch();
+  const { selectedMatchId } = useMatch();
 
-  const [team, setTeam] = useState(null);
+  const [teams, setTeams] = useState([]); // Array to hold multiple teams
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch team from the API
+  // Fetch all teams created by the user from the API
   useEffect(() => {
     if (!selectedMatchId) {
-      setError("Select one match first . go back and join again ");
+      setError("Select one match first. Go back and join again.");
       setLoading(false);
       return;
     }
 
-    const fetchTeam = async () => {
+    const fetchTeams = async () => {
       try {
-        const response = await fetch("/api/team/myTeam");
+        const response = await fetch("/api/team/myTeam"); // Assuming the updated endpoint for fetching all teams
         if (!response.ok) {
-          throw new Error("Failed to fetch team");
+          throw new Error("Failed to fetch teams");
         }
         const data = await response.json();
-        setTeam(data.team);
+        setTeams(data.teams); // Set all teams to state
       } catch (error) {
-        console.error("Error fetching team:", error);
+        console.error("Error fetching teams:", error);
         setError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTeam();
+    fetchTeams();
   }, [selectedMatchId]);
 
-  const handleTeamSelect = () => {
-    if (team) {
-      setSelectedTeam(team.id); // Set selected team ID
-    }
+  const handleTeamSelect = (teamId) => {
+    setSelectedTeam(teamId); // Set selected team ID
   };
 
   const handleJoinTournament = async () => {
@@ -73,7 +71,7 @@ export default function TeamSelection() {
         },
         body: JSON.stringify({
           teamId: selectedTeam,
-        userId: "66fe96eaeb09cebabc289ee0"
+          userId: "66fe96eaeb09cebabc289ee0", // Replace with actual userId from your context or state
         }),
       });
 
@@ -90,7 +88,7 @@ export default function TeamSelection() {
 
   // Loading state
   if (loading) {
-    return <div className="p-4">Loading team...</div>;
+    return <div className="p-4">Loading teams...</div>;
   }
 
   // Error state
@@ -104,11 +102,11 @@ export default function TeamSelection() {
       <nav className="sticky top-0 z-10 bg-white shadow-md p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-          <Link href="/">
-            <Button variant="ghost" size="icon" className="mr-2">
-              <ArrowLeft className="h-6 w-6" />
-            </Button>
-            </Link>L
+            <Link href="/">
+              <Button variant="ghost" size="icon" className="mr-2">
+                <ArrowLeft className="h-6 w-6" />
+              </Button>
+            </Link>
             <h1 className="text-xl font-bold">Select Team</h1>
           </div>
           <Link href="/create-team">
@@ -122,42 +120,46 @@ export default function TeamSelection() {
       {/* Main Content */}
       <main className="flex-grow p-4 pb-20">
         <div className="space-y-4">
-          {team && (
-            <Card
-              key={team.id}
-              className={`overflow-hidden ${
-                selectedTeam === team.id ? "ring-2 ring-primary" : ""
-              }`}
-              onClick={handleTeamSelect}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-4">
-                  <Image
-                    src={team.logo}
-                    alt={`${team.teamName} logo`}
-                    width={50}
-                    height={50}
-                    className="rounded-full"
-                  />
-                  <div>
-                    <h2 className="text-xl font-bold">{team.teamName}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Created by: {team.teamCreatedBy.username}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  {team.members.map((member) => (
-                    <div key={member.id} className="text-sm">
-                      <p className="font-semibold">{member.inGameName}</p>
-                      <p className="text-muted-foreground">
-                        {member.inGamePlayerId}
+          {teams.length > 0 ? (
+            teams.map((team) => (
+              <Card
+                key={team.id}
+                className={`overflow-hidden ${
+                  selectedTeam === team.id ? "ring-2 ring-primary" : ""
+                }`}
+                onClick={() => handleTeamSelect(team.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-4">
+                    <Image
+                      src={team.logo}
+                      alt={`${team.teamName} logo`}
+                      width={50}
+                      height={50}
+                      className="rounded-full"
+                    />
+                    <div>
+                      <h2 className="text-xl font-bold">{team.teamName}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Created by: {team.teamCreatedBy.username}
                       </p>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {team.members.map((member) => (
+                      <div key={member.id} className="text-sm">
+                        <p className="font-semibold">{member.inGameName}</p>
+                        <p className="text-muted-foreground">
+                          {member.inGamePlayerId}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div>No teams found. Create one!</div>
           )}
         </div>
       </main>
