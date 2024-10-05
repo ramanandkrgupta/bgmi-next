@@ -1,5 +1,6 @@
 "use client";
 
+import jwtDecode from "jwt-decode";
 import { useState, useEffect } from "react";
 import { useMatch } from "../context/MatchContext";
 import { useParams } from "next/navigation";
@@ -57,34 +58,62 @@ export default function TeamSelection() {
     setSelectedTeam(teamId); // Set selected team ID
   };
 
-  const handleJoinTournament = async () => {
-    if (!selectedTeam || !selectedMatchId) {
-      console.error("Missing required data: teamId or matchId");
-      return;
-    }
+  
 
-    try {
-      const response = await fetch(`/api/match/join/${selectedMatchId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          teamId: selectedTeam,
-          userId: "66fe96eaeb09cebabc289ee0", // Replace with actual userId from your context or state
-        }),
-      });
-
-      if (response.ok) {
-        setShowSuccessDialog(true);
-      } else {
-        const errorData = await response.json();
-        console.error("Failed to join match:", errorData);
-      }
-    } catch (error) {
-      console.error("Error joining match:", error);
+const handleJoinTournament = async () => {
+  // Extract token from cookies
+  const getTokenFromCookies = () => {
+    const cookies = document.cookie.split("; ");
+    const tokenCookie = cookies.find(cookie => cookie.startsWith("token="));
+    if (tokenCookie) {
+      return tokenCookie.split("=")[1]; // Get the token part
     }
+    return null;
   };
+
+  const token = getTokenFromCookies();
+  if (!token) {
+    console.error("No token found in cookies");
+    return;
+  }
+
+  // Decode the JWT token to get the userId
+  let userId;
+  try {
+    const decodedToken = jwtDecode(token); // Decode the JWT token
+    userId = decodedToken.userId; // Assuming userId is stored in the token
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return;
+  }
+
+  if (!selectedTeam || !selectedMatchId) {
+    console.error("Missing required data: teamId or matchId");
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/match/join/${selectedMatchId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        teamId: selectedTeam,
+        userId: userId, // Pass the extracted userId from the token
+      }),
+    });
+
+    if (response.ok) {
+      setShowSuccessDialog(true);
+    } else {
+      const errorData = await response.json();
+      console.error("Failed to join match:", errorData);
+    }
+  } catch (error) {
+    console.error("Error joining match:", error);
+  }
+};
 
   // Loading state
   if (loading) {
