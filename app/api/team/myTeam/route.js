@@ -20,13 +20,11 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid token, no userId' }, { status: 403 });
     }
 
-    // Fetch the team information for the current user
-    const team = await prisma.team.findFirst({
+    // Fetch all teams created by the current user
+    const teams = await prisma.team.findMany({
       where: {
-        teamCreatedById:  userId, // Find the team where this user is a member
-          },
-        
-      
+        teamCreatedById: userId, // Find teams where this user is the creator
+      },
       include: {
         members: true, // Include team members
         teamCreatedBy: { // Include the user who created the team
@@ -38,15 +36,15 @@ export async function GET(request) {
       },
     });
 
-    if (!team) {
-      return NextResponse.json({ message: 'No team found for this user' }, { status: 404 });
+    if (!teams || teams.length === 0) {
+      return NextResponse.json({ message: 'No teams found for this user' }, { status: 404 });
     }
 
-    // Return the team information
-    return NextResponse.json({ team }, { status: 200 });
+    // Return all the teams created by the user
+    return NextResponse.json({ teams }, { status: 200 });
 
   } catch (error) {
-    console.error('Error fetching team info:', error);
+    console.error('Error fetching teams info:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
   }
 }
