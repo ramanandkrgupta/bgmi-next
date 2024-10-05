@@ -6,14 +6,14 @@ export async function POST(req, { params }) {
   const { id } = params; // Match ID from the URL
 
   // Extract token from cookies
-  const { cookie } = req.headers;
+  const { Cookie } = req.headers;
 
   if (!cookie) {
     return NextResponse.json({ error: 'No cookies found' }, { status: 401 });
   }
 
   // Find the token in the cookies
-  const tokenCookie = cookie.split('; ').find(c => c.startsWith('token='));
+  const tokenCookie = Cookie.split('; ').find(c => c.startsWith('token='));
   if (!tokenCookie) {
     return NextResponse.json({ error: 'Token not found in cookies' }, { status: 401 });
   }
