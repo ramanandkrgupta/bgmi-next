@@ -1,10 +1,36 @@
 import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken'; // Make sure to install this library
 import prisma from '@/lib/prisma'; // Ensure the import path is correct
 
 export async function POST(req, { params }) {
   const { id } = params; // Match ID from the URL
-  const { teamId, userId } = await req.json(); // Expecting teamId and userId from the request body
-  console.log(id);
+
+  // Extract token from cookies
+  const { cookie } = req.headers;
+
+  if (!cookie) {
+    return NextResponse.json({ error: 'No cookies found' }, { status: 401 });
+  }
+
+  // Find the token in the cookies
+  const tokenCookie = cookie.split('; ').find(c => c.startsWith('token='));
+  if (!tokenCookie) {
+    return NextResponse.json({ error: 'Token not found in cookies' }, { status: 401 });
+  }
+
+  const token = tokenCookie.split('=')[1]; // Extract the token from the "token=" part of the cookie
+
+  // Decode and verify the token to get the userId
+  let userId;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Replace with your JWT secret
+    userId = decoded.userId; // Assuming the userId is stored in the token's payload
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 403 });
+  }
+
+  // Proceed with the rest of your logic
+  const { teamId } = await req.json(); // Expecting teamId from the request body
 
   try {
     // Find the match based on the provided ID
