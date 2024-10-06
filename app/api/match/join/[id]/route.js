@@ -13,7 +13,7 @@ export async function POST(req, { params }) {
   }
 
   // Find the token in the cookies
-  const tokenCookie = Cookie.split('; ').find(c => c.startsWith('token='));
+  const tokenCookie = Cookie.split('; ').find(C => C.startsWith('token='));
   if (!tokenCookie) {
     return NextResponse.json({ error: 'Token not found in cookies' }, { status: 401 });
   }
