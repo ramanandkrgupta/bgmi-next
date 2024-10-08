@@ -14,18 +14,10 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: 'Unauthorized, no token provided' }, { status: 401 });
     }
 
-<<<<<<< HEAD
     // Verify the token and extract user info
     const decoded = verifyToken(token.value); // Assuming the token contains userId
     const userId = decoded.id;
     console.log(userId)
-=======
-  // Find the token in the cookies
-  const tokenCookie = Cookie.split('; ').find(C => C.startsWith('token='));
-  if (!tokenCookie) {
-    return NextResponse.json({ error: 'Token not found in cookies' }, { status: 401 });
-  }
->>>>>>> fc35176315be672a1fc9791f32856ca9e4b62189
 
     if (!userId) {
       return NextResponse.json({ error: 'Invalid token, no userId' }, { status: 403 });
