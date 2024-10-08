@@ -1,6 +1,8 @@
 "use client";
 
-import jwtDecode from "jwt-decode";
+// import jwtDecode from "jwt-decode";
+import axios from 'axios';
+import Cookies from "js-cookie";
 import { useState, useEffect } from "react";
 import { useMatch } from "../context/MatchContext";
 import { useParams } from "next/navigation";
@@ -35,23 +37,21 @@ export default function TeamSelection() {
       return;
     }
 
-    const fetchTeams = async () => {
-      try {
-        const response = await fetch("/api/team/myTeam"); // Assuming the updated endpoint for fetching all teams
-        if (!response.ok) {
-          throw new Error("Failed to fetch teams");
-        }
-        const data = await response.json();
-        setTeams(data.teams); // Set all teams to state
-      } catch (error) {
-        console.error("Error fetching teams:", error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  
 
-    fetchTeams();
+const fetchTeams = async () => {
+  try {
+    const response = await axios.get("/api/team/myTeam");
+    setTeams(response.data.teams); // Set all teams to state
+  } catch (error) {
+    console.error("Error fetching teams:", error);
+    setError(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+fetchTeams();
   }, [selectedMatchId]);
 
   const handleTeamSelect = (teamId) => {
@@ -59,33 +59,26 @@ export default function TeamSelection() {
   };
 
   
+  
+  
+  
+ 
 
 const handleJoinTournament = async () => {
-  // Extract token from cookies
-  const getTokenFromCookies = () => {
-    const cookies = document.cookie.split("; ");
-    const tokenCookie = cookies.find(cookie => cookie.startsWith("token="));
-    if (tokenCookie) {
-      return tokenCookie.split("=")[1]; // Get the token part
-    }
-    return null;
-  };
+  // const token = Cookies.get("token");
+  // if (!token) {
+  //   console.error("No token found in cookies");
+  //   return;
+  // }
 
-  const token = getTokenFromCookies();
-  if (!token) {
-    console.error("No token found in cookies");
-    return;
-  }
-
-  // Decode the JWT token to get the userId
-  let userId;
-  try {
-    const decodedToken = jwtDecode(token); // Decode the JWT token
-    userId = decodedToken.userId; // Assuming userId is stored in the token
-  } catch (error) {
-    console.error("Error decoding token:", error);
-    return;
-  }
+  // let userId;
+  // try {
+  //   const decodedToken = jwtDecode(token);
+  //   userId = decodedToken.userId;
+  // } catch (error) {
+  //   console.error("Error decoding token:", error);
+  //   return;
+  // }
 
   if (!selectedTeam || !selectedMatchId) {
     console.error("Missing required data: teamId or matchId");
@@ -97,10 +90,11 @@ const handleJoinTournament = async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+       // "Authorization": `Bearer ${token}`, // Pass the token in Authorization header
       },
       body: JSON.stringify({
         teamId: selectedTeam,
-        userId: userId, // Pass the extracted userId from the token
+       // userId: userId,
       }),
     });
 

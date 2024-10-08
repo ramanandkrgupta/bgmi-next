@@ -1,33 +1,28 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken'; // Make sure to install this library
+
+ // Make sure to install this library
+ import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma'; // Ensure the import path is correct
 
 export async function POST(req, { params }) {
   const { id } = params; // Match ID from the URL
 
-  // Extract token from cookies
-  const { Cookie } = req.headers;
+  const cookies = req.cookies;
+    const token = cookies.get('token'); // Fetch the JWT token from cookies
 
-  if (!cookie) {
-    return NextResponse.json({ error: 'No cookies found' }, { status: 401 });
-  }
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized, no token provided' }, { status: 401 });
+    }
 
-  // Find the token in the cookies
-  const tokenCookie = Cookie.split('; ').find(c => c.startsWith('token='));
-  if (!tokenCookie) {
-    return NextResponse.json({ error: 'Token not found in cookies' }, { status: 401 });
-  }
+    // Verify the token and extract user info
+    const decoded = verifyToken(token.value); // Assuming the token contains userId
+    const userId = decoded.id;
+    console.log(userId)
 
-  const token = tokenCookie.split('=')[1]; // Extract the token from the "token=" part of the cookie
-
-  // Decode and verify the token to get the userId
-  let userId;
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Replace with your JWT secret
-    userId = decoded.userId; // Assuming the userId is stored in the token's payload
-  } catch (error) {
-    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 403 });
-  }
+    if (!userId) {
+      return NextResponse.json({ error: 'Invalid token, no userId' }, { status: 403 });
+    }
+  
 
   // Proceed with the rest of your logic
   const { teamId } = await req.json(); // Expecting teamId from the request body

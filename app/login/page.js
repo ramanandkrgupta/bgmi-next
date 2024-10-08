@@ -52,7 +52,7 @@ const LoginPage = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="input input-bordered w-full mb-2"
+          className="input input-bordered w-full mb-2 text-white"
         />
         <input
           type="password"
@@ -60,7 +60,7 @@ const LoginPage = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="input input-bordered w-full mb-4"
+          className="input input-bordered w-full mb-4 text-white"
         />
         <button type="submit" className="btn btn-primary w-full">Login</button>
         <p className="text-gray-600 mt-4">

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Home, Trophy, Users, Settings, Menu } from "lucide-react";
+import { BellRing } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -54,7 +54,7 @@ export default function TournamentApp() {
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold">BGMI Tournaments</h1>
           <Button variant="ghost" size="icon">
-            <Menu className="h-6 w-6" />
+            <BellRing className="h-6 w-6" />
           </Button>
         </div>
       </nav>
@@ -88,6 +88,7 @@ export default function TournamentApp() {
                     layout="fill"
                     objectFit="cover"
                     className="rounded-t-lg"
+                    quality={10}
                   />
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-60"></div>
                   <h2 className="absolute bottom-2 left-4 text-xl font-bold text-white">
@@ -128,7 +129,7 @@ export default function TournamentApp() {
       </main>
 
       {/* Sticky Bottom Navigation */}
-      <motion.nav
+      {/* <motion.nav
         className="sticky bottom-0 bg-white shadow-lg"
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
@@ -142,7 +143,7 @@ export default function TournamentApp() {
             </Button>
           ))}
         </div>
-      </motion.nav>
+      </motion.nav> */}
     </div>
   );
 }
