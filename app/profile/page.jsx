@@ -8,21 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Home, Trophy, Users, Settings, LogOut, Edit, CreditCard, HelpCircle,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import axios from "axios"; // Assuming Axios for API requests
+import { Settings, Edit } from "lucide-react";
+import axios from "axios";
 
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
-    phone: "",
-    bgmiPlayerId: "",
-    bgmiPlayerName: "",
+    mobile: "",
+    inGamePlayerId: "",
+    inGameName: "",
+    role: "",
   });
 
   // Fetch user profile data on mount
@@ -30,12 +27,16 @@ export default function ProfilePage() {
     async function fetchProfile() {
       try {
         const response = await axios.get("/api/user/profile"); // Replace with your API endpoint
-        setUserProfile(response.data);
+        const profile = response.data;
+        setUserProfile(profile);
+
+        // Update the formData state with correct values from the response
         setFormData({
-          email: response.data.email,
-          phone: response.data.mobile,
-          bgmiPlayerId: response.data.teams0.inGamePlayerId,
-          bgmiPlayerName: response.data.inGameName,
+          email: profile.email || "",
+          mobile: profile.mobile || "", // Assuming the key is 'mobile' for phone
+          inGamePlayerId: profile.inGamePlayerId || "", // Ensure `teams0` exists
+          inGameName: profile.inGameName || "",
+          role: profile.role || "",
         });
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -123,7 +124,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="mobile">Phone</Label>
                   <Input
                     id="mobile"
                     value={formData.mobile}
@@ -132,19 +133,28 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bgmiPlayerId">BGMI Player ID</Label>
+                  <Label htmlFor="inGamePlayerId">BGMI Player ID</Label>
                   <Input
-                    id="bgmiPlayerId"
+                    id="inGamePlayerId"
                     value={formData.inGamePlayerId}
                     onChange={handleInputChange}
                     readOnly={!isEditing}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bgmiPlayerName">BGMI In-Game Name</Label>
+                  <Label htmlFor="inGameName">BGMI In-Game Name</Label>
                   <Input
-                    id="bgmiPlayerName"
+                    id="inGameName"
                     value={formData.inGameName}
+                    onChange={handleInputChange}
+                    readOnly={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Input
+                    id="role"
+                    value={formData.role}
                     onChange={handleInputChange}
                     readOnly={!isEditing}
                   />
@@ -174,11 +184,8 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
         </Tabs>
-        
-        {/* Other sections like logout, contact support */}
-      </main>
 
-      
+      </main>
     </div>
   );
 }

@@ -19,6 +19,20 @@ export async function POST(req) {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decodedToken.id;
 
+    // Fetch the user's in-game details from the User model
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        inGameName: true,
+        inGamePlayerId: true,
+        role: true, // Assuming role is part of the user model
+      },
+    });
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
+    }
+
     // Default logo path
     const defaultLogoUrl = '/logo/bgmi-logo.jpeg'; // Ensure the logo path is correct
 
@@ -38,30 +52,43 @@ export async function POST(req) {
       },
     });
 
-    // Add the team creator as a member
+    // Add the team creator as a member using their in-game details from the User model
     await prisma.userTeam.create({
       data: {
         userId,
         teamId: newTeam.id,
-        inGameName: 'YourInGameName', // Replace with the actual in-game name
-        inGamePlayerId: 'YourPlayerId', // Replace with the actual player ID
-        role: 'Leader', // Assuming the team creator is the leader
+        inGameName: user.inGameName, // Use the user's in-game name
+        inGamePlayerId: user.inGamePlayerId, // Use the user's in-game player ID
+        role: user.role || 'Leader', // Use the user's role, default to 'Leader'
       },
     });
 
-    // If there are additional members, add them as well
+    // If there are additional members, fetch their in-game details and add them as well
     if (members && members.length > 0) {
-      const memberPromises = members.map((member) =>
-        prisma.userTeam.create({
+      const memberPromises = members.map(async (member) => {
+        const memberDetails = await prisma.user.findUnique({
+          where: { id: member.userId },
+          select: {
+            inGameName: true,
+            inGamePlayerId: true,
+            role: true,
+          },
+        });
+
+        if (!memberDetails) {
+          throw new Error(`Member with userId ${member.userId} not found`);
+        }
+
+        return prisma.userTeam.create({
           data: {
             userId: member.userId,
             teamId: newTeam.id,
-            inGameName: member.inGameName,
-            inGamePlayerId: member.inGamePlayerId,
-            role: member.role,
+            inGameName: memberDetails.inGameName, // Use the member's in-game name
+            inGamePlayerId: memberDetails.inGamePlayerId, // Use the member's in-game player ID
+            role: memberDetails.role || 'Member', // Use the member's role, default to 'Member'
           },
-        })
-      );
+        });
+      });
       await Promise.all(memberPromises);
     }
 

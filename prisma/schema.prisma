@@ -24,6 +24,9 @@ model User {
   winningsWallet Float         @default(0.0)
   matchesPlayed  Int           @default(0)
   matchesWon     Int           @default(0)
+  inGameName     String? // The in-game name of the user
+  inGamePlayerId String?
+  role           String? // The role of the user in the team
   referrals      Referral[]
   transactions   Transaction[]
   Tournament     Tournament[]

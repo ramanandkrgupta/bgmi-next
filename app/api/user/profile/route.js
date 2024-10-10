@@ -28,12 +28,9 @@ export async function GET(request) {
         email: true,
         mobile: true,
         depositWallet: true,
-        teams: {
-          select: {
-            inGamePlayerId: true,
-            inGameName: true,
-          },
-        },
+        inGamePlayerId: true,  // Fetch inGamePlayerId
+        inGameName: true,
+        role: true,      // Fetch inGameName
       },
     });
 
@@ -66,7 +63,7 @@ export async function PUT(request) {
     }
 
     // Parse request body
-    const { name, mobile } = await request.json();
+    const { name, mobile, inGamePlayerId, inGameName, role } = await request.json();  // Include inGamePlayerId and inGameName
 
     // Update the user profile in the database using Prisma
     const updatedUser = await prisma.user.update({
@@ -74,6 +71,9 @@ export async function PUT(request) {
       data: {
         name,
         mobile,
+        inGamePlayerId,   // Update inGamePlayerId
+        inGameName,
+        role       // Update inGameName
       },
     });
 
